@@ -36,18 +36,18 @@ const REPORTS = [
       col("date_of_birth", "DOB", "date"), col("blood_type_full", "Blood Type")],
   },
   {
+    key: "medical-problems", group: "Patients", label: "List of Medical Problems per Patient",
+    filters: [f.from, f.to, f.patientCode], run: api.reportMedicalProblems,
+    columns: [col("patient_code", "Patient"), col("patient_name", "Name"), col("condition_code", "Cond. Code"),
+      col("condition_name", "Condition"), col("visit_code", "Visit"), col("created_at", "Date", "date")],
+  },
+  {
     key: "most-frequent-patients", group: "Patients", label: "Most Frequently Visiting Patients", //analysis: true,
     filters: [f.from, f.to, f.limit], run: api.reportMostFrequentPatients,
     columns: [col("patient_code", "Patient"), col("patient_name", "Name"), col("gender", "Gender"),
       col("visit_count", "Visits", "number")],
   },
   // Diagnoses / Conditions
-  {
-    key: "medical-problems", group: "Diagnoses", label: "List of Medical Problems per Patient",
-    filters: [f.from, f.to, f.patientCode], run: api.reportMedicalProblems,
-    columns: [col("patient_code", "Patient"), col("patient_name", "Name"), col("condition_code", "Cond. Code"),
-      col("condition_name", "Condition"), col("visit_code", "Visit"), col("created_at", "Date", "date")],
-  },
   {
     key: "top-conditions", group: "Diagnoses", label: "Most Common Medical Problems", //analysis: true,
     filters: [f.from, f.to, f.limit], run: api.reportTopConditions,
