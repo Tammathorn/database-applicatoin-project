@@ -49,7 +49,7 @@ const REPORTS = [
       col("condition_name", "Condition"), col("visit_code", "Visit"), col("created_at", "Date", "date")],
   },
   {
-    key: "top-conditions", group: "Diagnoses", label: "Most Commonly Medical Problems", //analysis: true,
+    key: "top-conditions", group: "Diagnoses", label: "Most Common Medical Problems", //analysis: true,
     filters: [f.from, f.to, f.limit], run: api.reportTopConditions,
     columns: [col("condition_code", "Code"), col("condition_name", "Condition"), col("occurrences", "Occurrences", "number")],
   },
