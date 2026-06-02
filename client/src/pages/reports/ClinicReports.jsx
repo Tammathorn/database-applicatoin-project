@@ -49,11 +49,6 @@ const REPORTS = [
   },
   // Diagnoses / Conditions
   {
-    key: "top-conditions", group: "Diagnoses", label: "Most Common Medical Problems", //analysis: true,
-    filters: [f.from, f.to, f.limit], run: api.reportTopConditions,
-    columns: [col("condition_code", "Code"), col("condition_name", "Condition"), col("occurrences", "Occurrences", "number")],
-  },
-  {
     key: "diagnoses", group: "Diagnoses", label: "Diagnosis Records",
     filters: [f.from, f.to, f.conditionCode, f.patientCode], run: api.reportDiagnoses,
     columns: [col("diagnosis_chart_code", "Chart"), col("patient_code", "Patient"), col("patient_name", "Name"),
@@ -64,6 +59,11 @@ const REPORTS = [
     filters: [f.from, f.to, f.diagnosisChartCode], run: api.reportDiagnosesByChart,
     columns: [col("diagnosis_chart_code", "Chart"), col("patient_code", "Patient"), col("patient_name", "Name"),
       col("condition_code", "Cond. Code"), col("condition_name", "Condition"), col("visit_code", "Visit"), col("created_at", "Date", "date")],
+  },
+    {
+    key: "top-conditions", group: "Diagnoses", label: "Most Common Medical Problems", //analysis: true,
+    filters: [f.from, f.to, f.limit], run: api.reportTopConditions,
+    columns: [col("condition_code", "Code"), col("condition_name", "Condition"), col("occurrences", "Occurrences", "number")],
   },
   // Medicines
   {
