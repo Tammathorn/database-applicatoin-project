@@ -19,4 +19,5 @@ r.get("/bills", c.bills);                                // 14
 r.get("/revenue-by-charge-type", c.revenueByChargeType); // 15
 r.get("/visits", c.visits);                              // 16 & 17
 r.get("/visits-monthly", c.visitsMonthly);               // 18
+r.get("/doctors-by-patient", c.doctorsByPatient);       // 19
 export default r;

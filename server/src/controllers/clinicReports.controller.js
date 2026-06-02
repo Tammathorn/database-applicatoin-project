@@ -24,3 +24,4 @@ export const bills = handler(svc.listBillsReport);
 export const revenueByChargeType = handler(svc.revenueByChargeType);
 export const visits = handler(svc.listVisitsReport);
 export const visitsMonthly = handler(svc.visitsMonthly);
+export const doctorsByPatient = handler(svc.DoctorsbyPatient);

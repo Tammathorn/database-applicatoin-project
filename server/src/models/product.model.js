@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+//Do we even use these?
 export const ProductSchema = z.object({
   id: z.number().int(),
   code: z.string(),

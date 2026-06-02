@@ -36,10 +36,10 @@ const REPORTS = [
       col("date_of_birth", "DOB", "date"), col("blood_type_full", "Blood Type")],
   },
   {
-    key: "medical-problems", group: "Patients", label: "List of Medical Problems per Patient",
-    filters: [f.from, f.to, f.patientCode], run: api.reportMedicalProblems,
-    columns: [col("patient_code", "Patient"), col("patient_name", "Name"), col("condition_code", "Cond. Code"),
-      col("condition_name", "Condition"), col("visit_code", "Visit"), col("created_at", "Date", "date")],
+    key: "patients-by-doctor", group: "Patients", label: "List of Patients Treated by a Doctor",
+    filters: [f.doctorCode, f.from, f.to], requires: ["doctorCode"], run: api.reportPatientsByDoctor,
+    columns: [col("patient_code", "Patient"), col("patient_name", "Name"), col("gender", "Gender"),
+      col("visit_code", "Visit"), col("visit_type", "Type"), col("created_at", "Date", "date")],
   },
   {
     key: "most-frequent-patients", group: "Patients", label: "Most Frequently Visiting Patients", //analysis: true,
@@ -93,16 +93,16 @@ const REPORTS = [
       col("specialty", "Specialty"), col("department_name", "Department")],
   },
   {
-    key: "patients-by-doctor", group: "Doctors", label: "List of Patients Treated by a Doctor",
-    filters: [f.doctorCode, f.from, f.to], requires: ["doctorCode"], run: api.reportPatientsByDoctor,
-    columns: [col("patient_code", "Patient"), col("patient_name", "Name"), col("gender", "Gender"),
-      col("visit_code", "Visit"), col("visit_type", "Type"), col("created_at", "Date", "date")],
+    key: "doctors-by-patient", group: "Doctors", label: "Previous Doctors appointed for a Specific Patient",
+    filters: [f.patientCode, f.from, f.to], run: api.reportDoctorsByPatient,
+    columns: [col("doctor_code", "Code"), col("doctor_name", "Name"), col("gender", "Gender"),
+      col("specialty", "Specialty"), col("department_name", "Department"), col("visit_code", "Visit"), col("created_at", "Date", "date")], 
   },
   {
     key: "most-appointed-doctors", group: "Doctors", label: "Most Commonly Appointed Doctors",// analysis: true,
     filters: [f.from, f.to, f.limit], run: api.reportMostAppointedDoctors,
     columns: [col("doctor_code", "Code"), col("doctor_name", "Doctor"), col("specialty", "Specialty"),
-      col("appointment_count", "Appointments", "number")],
+      col("appointment_count", "Appointments", "number")], 
   },
   // Visits
   {

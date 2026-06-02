@@ -329,3 +329,23 @@ export async function visitsMonthly({ from, to } = {}) {
   );
   return rows;
 }
+
+
+export async function DoctorsbyPatient({ patientCode, from, to } = {}) {
+  const { rows } = await pool.query(
+    `SELECT DISTINCT d.doctor_code, d.doctor_name, d.gender, d.specialty, dep.department_name,
+            v.visit_code, v.created_at
+     FROM appointed_doctor_line adl
+     JOIN appointed_doctor ad ON ad.id = adl.appointed_doctor_id
+     JOIN visit v ON v.id = ad.visit_id
+     JOIN patient p ON p.id = v.patient_id
+     JOIN doctor d ON d.id = adl.doctor_id
+     JOIN department dep ON dep.id = d.department_id
+     WHERE p.patient_code = $1
+       AND ($2::date IS NULL OR v.created_at::date >= $2)
+       AND ($3::date IS NULL OR v.created_at::date <= $3)
+     ORDER BY v.created_at DESC, d.doctor_code`,
+    [orNull(patientCode), orNull(from), orNull(to)]
+  );
+  return rows;
+}

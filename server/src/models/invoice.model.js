@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+//Do we even use these?
 // Validation: use business keys (customer_code, product_code), not primary keys.
 export const CreateInvoiceSchema = z.object({
   invoice_no: z.string().optional(), // Optional for auto-generation

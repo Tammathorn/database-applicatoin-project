@@ -33,4 +33,5 @@ export const reportMostFrequentPatients = (p) => get("most-frequent-patients", p
 export const reportBills = (p) => get("bills", p);                             // 14
 export const reportRevenueByChargeType = (p) => get("revenue-by-charge-type", p); // 15
 export const reportVisits = (p) => get("visits", p);                           // 16 & 17
-export const reportVisitsMonthly = (p) => get("visits-monthly", p);            // 18
+export const reportVisitsMonthly = (p) => get("visits-monthly", p);            // 18 what do these numbers mean
+export const reportDoctorsByPatient = (p) => get("doctors-by-patient", p);   // 19
