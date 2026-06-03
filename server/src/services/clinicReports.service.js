@@ -33,7 +33,7 @@ export async function listPatientsVisiting({ from, to, type } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
        AND ($3::text IS NULL OR v.visit_type = $3)
-     ORDER BY v.visit_code ASC`,
+     ORDER BY p.patient_code ASC`,
     [orNull(from), orNull(to), orNull(type)]
   );
   return rows;
