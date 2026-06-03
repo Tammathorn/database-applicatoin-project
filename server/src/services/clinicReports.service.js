@@ -1,15 +1,8 @@
 import { pool } from "../db/pool.js";
 
-// All clinical events hang off a visit, and several line tables have no own
-// timestamp (prescription_chart_line, patient_bill, appointed_doctor), so every
-// date-range filter below is anchored on visit.created_at — the clinical event date.
-// Filters use the ($n::type IS NULL OR col = $n) guard pattern so absent filters
-// (passed as null) simply match everything. No dynamic SQL string building.
-
 const normLimit = (limit) => (Number(limit) > 0 ? Math.floor(Number(limit)) : 10);
 const orNull = (v) => (v === undefined || v === "" ? null : v);
 
-// Shared SQL expression for a bill line's monetary amount.
 const LINE_AMOUNT = `
   CASE pbl.charge_type
     WHEN 'Treatment' THEN t.unit_cost * tcl.quantity
@@ -17,21 +10,20 @@ const LINE_AMOUNT = `
     WHEN 'Fee'       THEN f.fee_price
   END`;
 
-// 1. List all patients. Filter by gender or blood type.
+// 1. All patients — sort by patient_code ASC
 export async function listPatientsReport({ gender, bloodType } = {}) {
   const { rows } = await pool.query(
     `SELECT p.patient_code, p.patient_name, p.gender, p.date_of_birth, bt.blood_type_full
      FROM patient p LEFT JOIN blood_type bt ON bt.id = p.blood_type_id
      WHERE ($1::text IS NULL OR p.gender = $1)
        AND ($2::text IS NULL OR bt.blood_type_full = $2)
-     ORDER BY p.patient_code`,
+     ORDER BY p.patient_code ASC`,
     [orNull(gender), orNull(bloodType)]
   );
   return rows;
 }
 
-// 1b. List all patients visiting from date to date. Filter by OPD/IPD type.
-// One row per visit (a patient with several visits appears once per visit).
+// 1b. Patients visiting — sort by visit_code ASC
 export async function listPatientsVisiting({ from, to, type } = {}) {
   const { rows } = await pool.query(
     `SELECT p.patient_code, p.patient_name, p.gender,
@@ -41,13 +33,13 @@ export async function listPatientsVisiting({ from, to, type } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
        AND ($3::text IS NULL OR v.visit_type = $3)
-     ORDER BY v.created_at DESC, p.patient_code`,
+     ORDER BY v.visit_code ASC`,
     [orNull(from), orNull(to), orNull(type)]
   );
   return rows;
 }
 
-// 2. List all medical problems per patient from date to date. Filter by patient ID.
+// 2. Medical problems per patient — sort by condition_code ASC
 export async function listMedicalProblems({ from, to, patientCode } = {}) {
   const { rows } = await pool.query(
     `SELECT p.patient_code, p.patient_name, mc.condition_code, mc.condition_name, mc.description,
@@ -60,13 +52,13 @@ export async function listMedicalProblems({ from, to, patientCode } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
        AND ($3::text IS NULL OR p.patient_code = $3)
-     ORDER BY v.created_at DESC, p.patient_code`,
+     ORDER BY mc.condition_code ASC`,
     [orNull(from), orNull(to), orNull(patientCode)]
   );
   return rows;
 }
 
-// 3. Analysis: Top N most common medical problems from date to date.
+// 3. Top N conditions — occurrences DESC, condition_code ASC secondary
 export async function topConditions({ from, to, limit } = {}) {
   const { rows } = await pool.query(
     `SELECT mc.condition_code, mc.condition_name, COUNT(*)::int AS occurrences
@@ -77,26 +69,26 @@ export async function topConditions({ from, to, limit } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
      GROUP BY mc.id, mc.condition_code, mc.condition_name
-     ORDER BY occurrences DESC, mc.condition_name
+     ORDER BY occurrences DESC, mc.condition_code ASC
      LIMIT $3`,
     [orNull(from), orNull(to), normLimit(limit)]
   );
   return rows;
 }
 
-// 4. List all medicines. Filter by medicine type.
+// 4. All medicines — sort by medicine_code ASC
 export async function listMedicinesReport({ type } = {}) {
   const { rows } = await pool.query(
     `SELECT medicine_code, medicine_name, generic_name, medicine_type, unit_cost
      FROM medicine
      WHERE ($1::text IS NULL OR medicine_type = $1)
-     ORDER BY medicine_name`,
+     ORDER BY medicine_code ASC`,
     [orNull(type)]
   );
   return rows;
 }
 
-// 5. List medications prescribed per patient from date to date. Filter by patient ID.
+// 5. Prescriptions per patient — sort by patient_code ASC
 export async function listPrescriptions({ from, to, patientCode } = {}) {
   const { rows } = await pool.query(
     `SELECT p.patient_code, p.patient_name, m.medicine_code, m.medicine_name, m.medicine_type,
@@ -109,13 +101,13 @@ export async function listPrescriptions({ from, to, patientCode } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
        AND ($3::text IS NULL OR p.patient_code = $3)
-     ORDER BY v.created_at DESC, p.patient_code`,
+     ORDER BY p.patient_code ASC`,
     [orNull(from), orNull(to), orNull(patientCode)]
   );
   return rows;
 }
 
-// 6. Analysis: Top N most frequently prescribed medicines from date to date.
+// 6. Top N medicines — times_prescribed DESC, medicine_code ASC secondary
 export async function topMedicines({ from, to, limit } = {}) {
   const { rows } = await pool.query(
     `SELECT m.medicine_code, m.medicine_name, m.medicine_type,
@@ -127,14 +119,14 @@ export async function topMedicines({ from, to, limit } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
      GROUP BY m.id, m.medicine_code, m.medicine_name, m.medicine_type
-     ORDER BY times_prescribed DESC, m.medicine_name
+     ORDER BY times_prescribed DESC, m.medicine_code ASC
      LIMIT $3`,
     [orNull(from), orNull(to), normLimit(limit)]
   );
   return rows;
 }
 
-// 7 & 8. List all diagnosis records from date to date. Filter by medical condition / patient.
+// 7. Diagnosis records — sort by diagnosis_chart_code ASC
 export async function listDiagnoses({ from, to, conditionCode, patientCode } = {}) {
   const { rows } = await pool.query(
     `SELECT dc.diagnosis_chart_code, p.patient_code, p.patient_name,
@@ -148,13 +140,13 @@ export async function listDiagnoses({ from, to, conditionCode, patientCode } = {
        AND ($2::date IS NULL OR v.created_at::date <= $2)
        AND ($3::text IS NULL OR mc.condition_code = $3)
        AND ($4::text IS NULL OR p.patient_code = $4)
-     ORDER BY v.created_at DESC, dc.diagnosis_chart_code`,
+     ORDER BY dc.diagnosis_chart_code ASC`,
     [orNull(from), orNull(to), orNull(conditionCode), orNull(patientCode)]
   );
   return rows;
 }
 
-// 9. List all diagnosis records from date to date. Filter by diagnosis chart.
+// 9. Diagnosis records by chart — already sorted by chart_code, condition_code (correct)
 export async function listDiagnosesByChart({ from, to, diagnosisChartCode } = {}) {
   const { rows } = await pool.query(
     `SELECT dc.diagnosis_chart_code, p.patient_code, p.patient_name,
@@ -167,26 +159,26 @@ export async function listDiagnosesByChart({ from, to, diagnosisChartCode } = {}
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
        AND ($3::text IS NULL OR dc.diagnosis_chart_code = $3)
-     ORDER BY dc.diagnosis_chart_code, mc.condition_code`,
+     ORDER BY dc.diagnosis_chart_code ASC, mc.condition_code ASC`,
     [orNull(from), orNull(to), orNull(diagnosisChartCode)]
   );
   return rows;
 }
 
-// 10. List all doctors. Filter by gender or department.
+// 10. All doctors — sort by doctor_code ASC
 export async function listDoctorsReport({ gender, departmentId } = {}) {
   const { rows } = await pool.query(
     `SELECT d.doctor_code, d.doctor_name, d.gender, d.specialty, dep.department_name
      FROM doctor d LEFT JOIN department dep ON dep.id = d.department_id
      WHERE ($1::text IS NULL OR d.gender = $1)
        AND ($2::bigint IS NULL OR d.department_id = $2)
-     ORDER BY d.doctor_name`,
+     ORDER BY d.doctor_code ASC`,
     [orNull(gender), orNull(departmentId)]
   );
   return rows;
 }
 
-// 11. List all patients treated by a doctor by code.
+// 11. Patients by doctor — sort by patient_code ASC
 export async function patientsByDoctor({ doctorCode, from, to } = {}) {
   const { rows } = await pool.query(
     `SELECT DISTINCT p.patient_code, p.patient_name, p.gender,
@@ -199,13 +191,13 @@ export async function patientsByDoctor({ doctorCode, from, to } = {}) {
      WHERE d.doctor_code = $1
        AND ($2::date IS NULL OR v.created_at::date >= $2)
        AND ($3::date IS NULL OR v.created_at::date <= $3)
-     ORDER BY v.created_at DESC, p.patient_code`,
+     ORDER BY p.patient_code ASC`,
     [orNull(doctorCode), orNull(from), orNull(to)]
   );
   return rows;
 }
 
-// 13. Analysis: Most frequently visited patients from date to date (Top N by visit count).
+// 13. Most frequent patients — visit_count DESC, patient_code ASC secondary
 export async function mostFrequentPatients({ from, to, limit } = {}) {
   const { rows } = await pool.query(
     `SELECT p.patient_code, p.patient_name, p.gender,
@@ -215,14 +207,14 @@ export async function mostFrequentPatients({ from, to, limit } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
      GROUP BY p.id, p.patient_code, p.patient_name, p.gender
-     ORDER BY visit_count DESC, p.patient_name
+     ORDER BY visit_count DESC, p.patient_code ASC
      LIMIT $3`,
     [orNull(from), orNull(to), normLimit(limit)]
   );
   return rows;
 }
 
-// 12. Analysis: Most appointed doctors from date to date.
+// 12. Most appointed doctors — appointment_count DESC, doctor_code ASC secondary
 export async function mostAppointedDoctors({ from, to, limit } = {}) {
   const { rows } = await pool.query(
     `SELECT d.doctor_code, d.doctor_name, d.specialty,
@@ -234,14 +226,14 @@ export async function mostAppointedDoctors({ from, to, limit } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
      GROUP BY d.id, d.doctor_code, d.doctor_name, d.specialty
-     ORDER BY appointment_count DESC, d.doctor_name
+     ORDER BY appointment_count DESC, d.doctor_code ASC
      LIMIT $3`,
     [orNull(from), orNull(to), normLimit(limit)]
   );
   return rows;
 }
 
-// 14. List all bills from date to date. Filter by patient code.
+// 14. All bills — sort by bill_code ASC
 export async function listBillsReport({ from, to, patientCode } = {}) {
   const { rows } = await pool.query(
     `SELECT pb.bill_code, p.patient_code, p.patient_name, v.visit_code, v.visit_type,
@@ -264,13 +256,13 @@ export async function listBillsReport({ from, to, patientCode } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
        AND ($3::text IS NULL OR p.patient_code = $3)
-     ORDER BY v.created_at DESC, pb.bill_code`,
+     ORDER BY pb.bill_code ASC`,
     [orNull(from), orNull(to), orNull(patientCode)]
   );
   return rows;
 }
 
-// 15. Analysis: Total revenue grouped by charge type from date to date.
+// 15. Revenue by charge type — revenue DESC (no code column)
 export async function revenueByChargeType({ from, to } = {}) {
   const { rows } = await pool.query(
     `SELECT pbl.charge_type,
@@ -293,7 +285,7 @@ export async function revenueByChargeType({ from, to } = {}) {
   return rows;
 }
 
-// 16 & 17. List all visits from date to date. Filter by OPD/IPD type and/or doctor.
+// 16. Visits — sort by visit_code ASC
 export async function listVisitsReport({ from, to, type, doctorCode } = {}) {
   const { rows } = await pool.query(
     `SELECT DISTINCT v.visit_code, v.visit_type, v.created_at,
@@ -307,13 +299,13 @@ export async function listVisitsReport({ from, to, type, doctorCode } = {}) {
        AND ($2::date IS NULL OR v.created_at::date <= $2)
        AND ($3::text IS NULL OR v.visit_type = $3)
        AND ($4::text IS NULL OR d.doctor_code = $4)
-     ORDER BY v.created_at DESC, v.visit_code`,
+     ORDER BY v.visit_code ASC`,
     [orNull(from), orNull(to), orNull(type), orNull(doctorCode)]
   );
   return rows;
 }
 
-// 18. Analysis: Number of OPD vs IPD visits grouped by month from date to date.
+// 18. Visits monthly — month ASC (chronological, no code column)
 export async function visitsMonthly({ from, to } = {}) {
   const { rows } = await pool.query(
     `SELECT to_char(date_trunc('month', v.created_at), 'YYYY-MM') AS month,
@@ -324,13 +316,13 @@ export async function visitsMonthly({ from, to } = {}) {
      WHERE ($1::date IS NULL OR v.created_at::date >= $1)
        AND ($2::date IS NULL OR v.created_at::date <= $2)
      GROUP BY date_trunc('month', v.created_at)
-     ORDER BY date_trunc('month', v.created_at)`,
+     ORDER BY date_trunc('month', v.created_at) ASC`,
     [orNull(from), orNull(to)]
   );
   return rows;
 }
 
-
+// Doctors by patient — sort by doctor_code ASC
 export async function DoctorsbyPatient({ patientCode, from, to } = {}) {
   const { rows } = await pool.query(
     `SELECT DISTINCT d.doctor_code, d.doctor_name, d.gender, d.specialty, dep.department_name,
@@ -344,7 +336,7 @@ export async function DoctorsbyPatient({ patientCode, from, to } = {}) {
      WHERE p.patient_code = $1
        AND ($2::date IS NULL OR v.created_at::date >= $2)
        AND ($3::date IS NULL OR v.created_at::date <= $3)
-     ORDER BY v.created_at DESC, d.doctor_code`,
+     ORDER BY d.doctor_code ASC`,
     [orNull(patientCode), orNull(from), orNull(to)]
   );
   return rows;
