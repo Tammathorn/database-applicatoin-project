@@ -12,7 +12,7 @@ export async function listDepartments(params = {}) {
   return { data: res.data, ...(res.meta || {}) };
 }
 export async function getDepartments() {
-  return unwrap(await http("/api/config/departments")).data;
+  return unwrap(await http("/api/config/departments?limit=1000")).data;
 }
 export async function getDepartment(code) {
   return unwrap(await http(`/api/config/departments/${encodeURIComponent(code)}`)).data;
@@ -34,7 +34,7 @@ export async function listMedicines(params = {}) {
   return { data: res.data, ...(res.meta || {}) };
 }
 export async function getMedicines() {
-  return unwrap(await http("/api/config/medicines")).data;
+  return unwrap(await http("/api/config/medicines?limit=1000")).data;
 }
 export async function getMedicine(code) {
   return unwrap(await http(`/api/config/medicines/${encodeURIComponent(code)}`)).data;
@@ -56,7 +56,7 @@ export async function listTreatments(params = {}) {
   return { data: res.data, ...(res.meta || {}) };
 }
 export async function getTreatments() {
-  return unwrap(await http("/api/config/treatments")).data;
+  return unwrap(await http("/api/config/treatments?limit=1000")).data;
 }
 export async function getTreatment(code) {
   return unwrap(await http(`/api/config/treatments/${encodeURIComponent(code)}`)).data;
@@ -78,7 +78,7 @@ export async function listFees(params = {}) {
   return { data: res.data, ...(res.meta || {}) };
 }
 export async function getFees() {
-  return unwrap(await http("/api/config/fees")).data;
+  return unwrap(await http("/api/config/fees?limit=1000")).data;
 }
 export async function getFee(code) {
   return unwrap(await http(`/api/config/fees/${encodeURIComponent(code)}`)).data;
@@ -100,7 +100,7 @@ export async function listMedicalConditions(params = {}) {
   return { data: res.data, ...(res.meta || {}) };
 }
 export async function getConditions() {
-  return unwrap(await http("/api/config/conditions")).data;
+  return unwrap(await http("/api/config/conditions?limit=1000")).data;
 }
 export async function getMedicalCondition(code) {
   return unwrap(await http(`/api/config/conditions/${encodeURIComponent(code)}`)).data;
