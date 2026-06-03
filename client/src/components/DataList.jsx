@@ -20,6 +20,8 @@ export default function DataList({
     basePath = "",
     itemKey = "id",
     onDelete,
+    showDelete = true,
+    showEdit = true,
     emptyMessage,
     defaultPageSize = 10,
     refreshTrigger = 0
@@ -36,7 +38,7 @@ export default function DataList({
     const [sortDir, setSortDir] = React.useState("asc");
     const [currentPage, setCurrentPage] = React.useState(1);
     const [pageSize, setPageSize] = React.useState(defaultPageSize);
-
+    const actionColumns = (showEdit || showDelete) ? 1 : 0;
     // Debounce search: update 300ms after user stops typing to avoid firing API on every keystroke
     React.useEffect(() => {
         const timer = setTimeout(() => {
@@ -232,12 +234,14 @@ export default function DataList({
                                         <SortIcon columnKey={col.key} sortable={col.sortable} />
                                     </th>
                                 ))}
-                                <th className="text-right">Actions</th>
+                                {(showEdit || showDelete) && (
+                                    <th className="text-right">Actions</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <TableLoading colSpan={columns.length + 1} />
+                                <TableLoading colSpan={columns.length + actionColumns} />
                             ) : (
                                 <>
                                     {data.map(item => {
@@ -256,27 +260,39 @@ export default function DataList({
                                                     )}
                                                 </td>
                                             ))}
-                                            <td className="text-right">
-                                                <Link 
-                                                    to={`${basePath}/${pathSegment}/edit`} 
-                                                    className="btn btn-outline" 
-                                                    style={{ fontSize: '0.7rem', padding: '4px 8px', marginRight: 8 }}
-                                                >
-                                                    Edit
-                                                </Link>
-                                                <button
-                                                    onClick={() => handleDelete(item)}
-                                                    className="btn btn-outline"
-                                                    style={{ fontSize: '0.7rem', padding: '4px 8px', color: '#ef4444', borderColor: '#ef4444' }}
-                                                >
-                                                    Delete
-                                                </button>
-                                            </td>
+                                            {(showEdit || showDelete) && (
+                                                <td className="text-right">
+                                                    {showEdit && (
+                                                        <Link
+                                                            to={`${basePath}/${pathSegment}/edit`}
+                                                            className="btn btn-outline"
+                                                            style={{ fontSize: '0.7rem', padding: '4px 8px', marginRight: showDelete ? 8 : 0 }}
+                                                        >
+                                                            Edit
+                                                        </Link>
+                                                    )}
+
+                                                    {showDelete && (
+                                                        <button
+                                                            onClick={() => handleDelete(item)}
+                                                            className="btn btn-outline"
+                                                            style={{
+                                                                fontSize: '0.7rem',
+                                                                padding: '4px 8px',
+                                                                color: '#ef4444',
+                                                                borderColor: '#ef4444'
+                                                            }}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            )}
                                         </tr>
                                     );})}
                                     {data.length === 0 && (
                                         <tr>
-                                            <td colSpan={columns.length + 1} style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>
+                                            <td colSpan={columns.length + actionColumns} style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>
                                                 {search ? `No matching ${itemName} found.` : (emptyMessage || `No ${itemName} found. Create one to get started.`)}
                                             </td>
                                         </tr>

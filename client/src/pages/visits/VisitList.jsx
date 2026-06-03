@@ -13,8 +13,16 @@ export default function VisitList() {
     { key: "created_at", label: "Date", sortable: false, render: v => v ? new Date(v).toLocaleDateString() : "-" },
   ];
   return (
-    <DataList title="Visits" fetchData={fetchData} columns={columns}
-      searchPlaceholder="Search visit code, patient name..." itemName="visits"
-      basePath="/visits" itemKey="visit_code" />
+        <DataList
+      title="Visits"
+      fetchData={fetchData}
+      columns={columns}
+      searchPlaceholder="Search visit code, patient name..."
+      itemName="visits"
+      basePath="/visits"
+      itemKey="visit_code"
+      showDelete={false}
+      showEdit={false}
+    />
   );
 }
