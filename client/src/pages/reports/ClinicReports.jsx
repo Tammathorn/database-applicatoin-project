@@ -56,7 +56,7 @@ const REPORTS = [
   },
   {
     key: "diagnoses-by-chart", group: "Diagnoses", label: "List of All Diagnosis by Chart",
-    filters: [f.from, f.to, f.diagnosisChartCode], run: api.reportDiagnosesByChart,
+    filters: [f.from, f.to, f.diagnosisChartCode],requires: ["diagnosisChartCode"], run: api.reportDiagnosesByChart,
     columns: [col("diagnosis_chart_code", "Chart"), col("patient_code", "Patient"), col("patient_name", "Name"),
       col("condition_code", "Cond. Code"), col("condition_name", "Condition"), col("visit_code", "Visit"), col("created_at", "Date", "date")],
   },

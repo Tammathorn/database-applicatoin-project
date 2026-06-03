@@ -341,3 +341,4 @@ export async function DoctorsbyPatient({ patientCode, from, to } = {}) {
   );
   return rows;
 }
+
