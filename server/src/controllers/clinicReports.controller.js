@@ -8,7 +8,7 @@ const handler = (fn) => async (req, res) => {
 };
 
 export const patients = handler(svc.listPatientsReport);
-export const patientsVisiting = handler(svc.listPatientsVisiting);
+export const visitsWithDoctors = handler(svc.listVisitsWithDoctors);
 export const medicalProblems = handler(svc.listMedicalProblems);
 export const topConditions = handler(svc.topConditions);
 export const medicines = handler(svc.listMedicinesReport);

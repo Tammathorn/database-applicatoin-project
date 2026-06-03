@@ -23,18 +23,19 @@ export async function listPatientsReport({ gender, bloodType } = {}) {
   return rows;
 }
 
-// 1b. Patients visiting — sort by visit_code ASC
-export async function listPatientsVisiting({ from, to, type } = {}) {
+export async function listVisitsWithDoctors({ visitCode, from, to } = {}) {
   const { rows } = await pool.query(
-    `SELECT p.patient_code, p.patient_name, p.gender,
-            v.visit_code, v.visit_type, v.created_at
+    `SELECT v.visit_code, v.visit_type, v.created_at,
+            d.doctor_code, d.doctor_name, d.specialty
      FROM visit v
-     JOIN patient p ON p.id = v.patient_id
-     WHERE ($1::date IS NULL OR v.created_at::date >= $1)
-       AND ($2::date IS NULL OR v.created_at::date <= $2)
-       AND ($3::text IS NULL OR v.visit_type = $3)
-     ORDER BY p.patient_code ASC`,
-    [orNull(from), orNull(to), orNull(type)]
+     LEFT JOIN appointed_doctor ad ON ad.visit_id = v.id
+     LEFT JOIN appointed_doctor_line adl ON adl.appointed_doctor_id = ad.id
+     LEFT JOIN doctor d ON d.id = adl.doctor_id
+     WHERE v.visit_code = $1
+       AND ($2::date IS NULL OR v.created_at::date >= $2)
+       AND ($3::date IS NULL OR v.created_at::date <= $3)
+     ORDER BY d.doctor_code ASC`,
+    [orNull(visitCode), orNull(from), orNull(to)]
   );
   return rows;
 }
