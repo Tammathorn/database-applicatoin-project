@@ -74,7 +74,7 @@ const REPORTS = [
   },
   {
     key: "prescriptions", group: "Medicines", label: "List of Prescriptions per Patient",
-    filters: [f.from, f.to, f.patientCode], run: api.reportPrescriptions,
+    filters: [f.from, f.to, f.patientCode],requires: ["patientCode"], run: api.reportPrescriptions,
     columns: [col("patient_code", "Patient"), col("patient_name", "Name"), col("medicine_code", "Med. Code"),
       col("medicine_name", "Medicine"), col("medicine_type", "Type"), col("quantity", "Qty", "number"),
       col("dosage_notes", "Dosage"), col("visit_code", "Visit"), col("created_at", "Date", "date")],
