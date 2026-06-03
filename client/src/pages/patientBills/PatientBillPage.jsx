@@ -2,20 +2,19 @@ import React from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getBillByCode, saveBillLines, addTransaction } from "../../api/patientBills.api.js";
-import { getFees } from "../../api/configuration.api.js";
-
+import FeePickerModal from "../../components/FeePickerModal.jsx";
 export default function PatientBillPage() {
   const { code } = useParams();
   const [bill, setBill] = React.useState(null);
-  const [fees, setFees] = React.useState([]);
+
   const [lines, setLines] = React.useState([]);
-  const [feeCode, setFeeCode] = React.useState("");
   const [txAmount, setTxAmount] = React.useState("");
   const [txType, setTxType] = React.useState("Cash");
   const [saving, setSaving] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [editMode, setEditMode] = React.useState(false);
-
+  const [feePickerOpen, setFeePickerOpen] = React.useState(false);
+  
   const loadBill = () => {
     getBillByCode(code).then(b => {
       setBill(b);
@@ -26,7 +25,7 @@ export default function PatientBillPage() {
 
   React.useEffect(() => {
     loadBill();
-    getFees().then(setFees).catch(() => {});
+
   }, [code]);
 
   const subtotal = lines.filter(l => l._include).reduce((sum, l) => {
@@ -58,13 +57,18 @@ export default function PatientBillPage() {
     } catch (e) { toast.error(e.message); } finally { setSaving(false); }
   };
 
-  const handleAddFee = async () => {
-    if (!feeCode) return;
-    const fee = fees.find(f => f.fee_code === feeCode);
-    if (!fee) return;
-    setLines(ls => [...ls, { charge_type: "Fee", fee_code: fee.fee_code, fee_name: fee.fee_name, fee_price: fee.fee_price, _include: true }]);
-    setFeeCode("");
-  };
+  const handleAddFee = (fee) => {
+  setLines(ls => [
+    ...ls,
+    {
+      charge_type: "Fee",
+      fee_code: fee.fee_code,
+      fee_name: fee.fee_name,
+      fee_price: fee.fee_price,
+      _include: true,
+    },
+  ]);
+};
 
   const handleAddTransaction = async () => {
     if (!txAmount || !txType) return;
@@ -149,12 +153,23 @@ export default function PatientBillPage() {
             </table>
 
             {editMode && (
-              <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-                <select className="form-control" style={{ flex: 1 }} value={feeCode} onChange={e => setFeeCode(e.target.value)}>
-                  <option value="">+ Add Fee...</option>
-                  {fees.map(f => <option key={f.fee_code} value={f.fee_code}>{f.fee_name} — ฿{Number(f.fee_price).toLocaleString()}</option>)}
-                </select>
-                <button className="btn btn-outline" onClick={handleAddFee}>Add Fee</button>
+              <div style={{ marginTop: 16 }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setFeePickerOpen(true)}
+                >
+                  + Add Fee
+                </button>
+
+                <FeePickerModal
+                  isOpen={feePickerOpen}
+                  onClose={() => setFeePickerOpen(false)}
+                  onSelect={(fee) => {
+                    handleAddFee(fee);
+                    setFeePickerOpen(false);
+                  }}
+                />
               </div>
             )}
           </div>

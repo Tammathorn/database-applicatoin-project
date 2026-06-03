@@ -11,7 +11,7 @@ import ListPickerModal from "../../components/ListPickerModal.jsx";
 import PatientPickerModal from "../../components/PatientPickerModal.jsx";
 import DoctorPickerModal from "../../components/DoctorPickerModal.jsx";
 import DiagnosisPickerModal from "../../components/DiagnosisPickerModal.jsx";
-const TABS = ["Info", "Doctors", "Prescription", "Treatment", "Diagnosis", "Bill"];
+const TABS = ["Info", "Doctors", "Diagnosis", "Treatment", "Prescription", "Bill"];
 
 export default function VisitPage({ mode }) {
   const { code } = useParams();
@@ -93,6 +93,7 @@ export default function VisitPage({ mode }) {
       const d = await getTreatmentChart(code);
       setTxLines(d?.lines || []);
       toast.success("Treatment chart saved.");
+      navigate(`/visits/${code}`);
     } catch (e) { toast.error(e.message); } finally { setSaving(false); }
   };
 
@@ -238,7 +239,7 @@ export default function VisitPage({ mode }) {
         )}
 
         {/* Tab 2: Prescription Chart */}
-        {!isCreate && tab === 2 && (
+        {!isCreate && tab === 4 && (
           <>
           {!!existingBillCode && (
               <div style={{ padding: "10px 14px", background: "#fef9c3", borderRadius: 6, marginBottom: 12, color: "#92400e", fontSize: "0.875rem" }}>
@@ -292,7 +293,7 @@ export default function VisitPage({ mode }) {
         )}
 
         {/* Tab 4: Diagnosis Chart */}
-        {!isCreate && tab === 4 && (
+        {!isCreate && tab === 2 && (
           <>
           {!!existingBillCode && (
               <div style={{ padding: "10px 14px", background: "#fef9c3", borderRadius: 6, marginBottom: 12, color: "#92400e", fontSize: "0.875rem" }}>
