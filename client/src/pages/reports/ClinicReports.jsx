@@ -112,10 +112,11 @@ const REPORTS = [
       col("patient_code", "Patient"), col("patient_name", "Name")],
   },
   {
-    key: "patients-visiting", group: "Visits", label: "List of All Visited Patients",
-    filters: [f.from, f.to, f.visitType], run: api.reportPatientsVisiting,
-    columns: [col("patient_code", "Patient"), col("patient_name", "Name"), col("gender", "Gender"),
-      col("visit_code", "Visit"), col("visit_type", "Type"), col("created_at", "Date", "date")],
+    key: "visits-with-doctors", group: "Visits", label: "List of Doctors Assigned to a Visit",
+    filters: [{ name: "visitCode", label: "Visit Code", type: "text", placeholder: "e.g. VST-001" }, f.from, f.to],
+    requires: ["visitCode"], run: api.reportVisitsWithDoctors,
+    columns: [col("visit_code", "Visit"), col("visit_type", "Type"), col("created_at", "Date", "date"),
+      col("doctor_code", "Doctor Code"), col("doctor_name", "Doctor"), col("specialty", "Specialty")],
   },
   {
     key: "visits-monthly", group: "Visits", label: "Amount of Each Visits Types", //analysis: true,

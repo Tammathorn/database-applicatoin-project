@@ -18,7 +18,7 @@ function qs(params = {}) {
 const get = async (path, params) => unwrap(await http(`/api/reports/${path}${qs(params)}`)).data ?? [];
 
 export const reportPatients = (p) => get("patients", p);                       // 1
-export const reportPatientsVisiting = (p) => get("patients-visiting", p);      // 1b
+export const reportVisitsWithDoctors = (p) => get("visits-with-doctors", p);      // 1b
 export const reportMedicalProblems = (p) => get("medical-problems", p);        // 2
 export const reportTopConditions = (p) => get("top-conditions", p);            // 3
 export const reportMedicines = (p) => get("medicines", p);                     // 4

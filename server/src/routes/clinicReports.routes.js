@@ -3,7 +3,7 @@ import * as c from "../controllers/clinicReports.controller.js";
 
 const r = Router();
 r.get("/patients", c.patients);                          // 1
-r.get("/patients-visiting", c.patientsVisiting);         // 1b
+r.get("/visits-with-doctors", c.visitsWithDoctors);         // 1b
 r.get("/medical-problems", c.medicalProblems);           // 2
 r.get("/top-conditions", c.topConditions);               // 3
 r.get("/medicines", c.medicines);                        // 4
