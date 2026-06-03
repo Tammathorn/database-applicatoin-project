@@ -2,29 +2,37 @@ import React from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getDoctor, createDoctor, updateDoctor } from "../../api/doctors.api.js";
-import { getDepartments } from "../../api/configuration.api.js";
-
+import DepartmentPickerModal from "../../components/DepartmentPickerModal.jsx";
 export default function DoctorPage({ mode }) {
   const { code } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = React.useState({ doctor_name: "", gender: "Male", specialty: "", department_id: "" });
-  const [departments, setDepartments] = React.useState([]);
   const [loading, setLoading] = React.useState(mode !== "create");
   const [saving, setSaving] = React.useState(false);
   const isView = mode === "view";
-
+  const [departmentPickerOpen, setDepartmentPickerOpen] = React.useState(false);
+  const [selectedDepartment, setSelectedDepartment] = React.useState(null);
+  
   React.useEffect(() => {
-    getDepartments().then(setDepartments).catch(() => {});
     if (mode !== "create") {
       getDoctor(code).then(d => {
-        setForm({
-          doctor_name: d.doctor_name || "",
-          gender: d.gender || "Male",
-          specialty: d.specialty || "",
-          department_id: d.department_id || "",
+      setForm({
+        doctor_name: d.doctor_name || "",
+        gender: d.gender || "Male",
+        specialty: d.specialty || "",
+        department_id: d.department_id || "",
+      });
+
+      if (d.department_id) {
+        setSelectedDepartment({
+          id: d.department_id,
+          department_name: d.department_name,
+          department_code: d.department_code,
         });
-        setLoading(false);
-      }).catch(() => { toast.error("Doctor not found"); navigate("/doctors"); });
+      }
+
+      setLoading(false);
+    }).catch(() => { toast.error("Doctor not found"); navigate("/doctors"); });
     }
   }, [code, mode]);
 
@@ -85,13 +93,44 @@ export default function DoctorPage({ mode }) {
           </div>
           <div className="form-group">
             <label className="form-label">Department</label>
-            <select className="form-control" value={form.department_id}
-              onChange={e => set("department_id", e.target.value)} disabled={isView}>
-              <option value="">— Select —</option>
-              {departments.map(dep => (
-                <option key={dep.id} value={dep.id}>{dep.department_name}</option>
-              ))}
-            </select>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                className="form-control"
+                readOnly
+                value={
+                  selectedDepartment
+                    ? selectedDepartment.department_name
+                    : ""
+                }
+                placeholder="— Click to select department —"
+                style={{
+                  cursor: "pointer",
+                  background: "#f8fafc"
+                }}
+                onClick={() => !isView && setDepartmentPickerOpen(true)}
+              />
+
+              {!isView && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setDepartmentPickerOpen(true)}
+                >
+                  Browse
+                </button>
+              )}
+            </div>
+
+            <DepartmentPickerModal
+              isOpen={departmentPickerOpen}
+              onClose={() => setDepartmentPickerOpen(false)}
+              onSelect={(dep) => {
+                set("department_id", dep.id);
+                setSelectedDepartment(dep);
+                setDepartmentPickerOpen(false);
+              }}
+            />
           </div>
           {!isView && (
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
