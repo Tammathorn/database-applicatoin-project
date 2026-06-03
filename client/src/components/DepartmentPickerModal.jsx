@@ -5,7 +5,7 @@ import ListPickerModal from "./ListPickerModal.jsx";
 const COLUMNS = [
   { key: "department_code", label: "Code" },
   { key: "department_name", label: "Department Name" },
-  { key: "description", label: "Description" },
+  { key: "location_description", label: "Location" },
 ];
 
 export default function DepartmentPickerModal({ isOpen, onClose, onSelect, initialSearch = "" }) {
