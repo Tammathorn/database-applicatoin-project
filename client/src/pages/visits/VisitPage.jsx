@@ -4,10 +4,13 @@ import { toast } from "react-toastify";
 import { getVisit, createVisit, updateVisit, getAppointedDoctor, saveAppointedDoctor,
   getPrescriptionChart, savePrescriptionChart, getTreatmentChart, saveTreatmentChart,
   getDiagnosisChart, saveDiagnosisChart } from "../../api/visits.api.js";
-import { listPatients } from "../../api/patients.api.js";
-import { getAllDoctors, getMedicines, getTreatments, getConditions } from "../../api/configuration.api.js";
 import { createBillForVisit, getBillByVisit } from "../../api/patientBills.api.js";
-
+import { listDoctors } from "../../api/doctors.api.js";
+import { listMedicines, listTreatments } from "../../api/configuration.api.js";
+import ListPickerModal from "../../components/ListPickerModal.jsx";
+import PatientPickerModal from "../../components/PatientPickerModal.jsx";
+import DoctorPickerModal from "../../components/DoctorPickerModal.jsx";
+import DiagnosisPickerModal from "../../components/DiagnosisPickerModal.jsx";
 const TABS = ["Info", "Doctors", "Prescription", "Treatment", "Diagnosis", "Bill"];
 
 export default function VisitPage({ mode }) {
@@ -17,18 +20,14 @@ export default function VisitPage({ mode }) {
   const isView = mode === "view";
   const [tab, setTab] = React.useState(0);
   const [visit, setVisit] = React.useState(null);
-  const [form, setForm] = React.useState({ patient_code: "", visit_type: "OPD", reported_symptoms: "", blood_pressure: "", height: "", weight: "", temperature: "" });
-  const [patients, setPatients] = React.useState([]);
-  const [allDoctors, setAllDoctors] = React.useState([]);
-  const [medicines, setMedicines] = React.useState([]);
-  const [treatments, setTreatments] = React.useState([]);
-  const [conditions, setConditions] = React.useState([]);
+  const [form, setForm] = React.useState({ patient_code: "", patient_name: "", visit_type: "OPD", reported_symptoms: "", blood_pressure: "", height: "", weight: "", temperature: "" });
   const [appointedLines, setAppointedLines] = React.useState([]);
   const [rxLines, setRxLines] = React.useState([]);
   const [txLines, setTxLines] = React.useState([]);
   const [dxLines, setDxLines] = React.useState([]);
   const [loading, setLoading] = React.useState(!isCreate);
   const [saving, setSaving] = React.useState(false);
+  const [patientPickerOpen, setPatientPickerOpen] = React.useState(false);
   const [existingBillCode, setExistingBillCode] = React.useState(null);
 
   React.useEffect(() => {
@@ -45,11 +44,6 @@ export default function VisitPage({ mode }) {
       getDiagnosisChart(code).then(d => setDxLines(d?.lines || [])).catch(() => {});
       getBillByVisit(code).then(b => setExistingBillCode(b?.bill_code || null)).catch(() => {});
     }
-    listPatients({ limit: 100 }).then(r => setPatients(r.data || [])).catch(() => {});
-    getAllDoctors().then(setAllDoctors).catch(() => {});
-    getMedicines().then(setMedicines).catch(() => {});
-    getTreatments().then(setTreatments).catch(() => {});
-    getConditions().then(setConditions).catch(() => {});
   }, [code, isCreate]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -160,10 +154,24 @@ export default function VisitPage({ mode }) {
             {isCreate && (
               <div className="form-group">
                 <label className="form-label">Patient *</label>
-                <select className="form-control" value={form.patient_code} onChange={e => set("patient_code", e.target.value)} required>
-                  <option value="">— Select Patient —</option>
-                  {patients.map(p => <option key={p.patient_code} value={p.patient_code}>{p.patient_name} ({p.patient_code})</option>)}
-                </select>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input className="form-control" readOnly required
+                    value={form.patient_code ? `${form.patient_name || ""} (${form.patient_code})` : ""}
+                    placeholder="— Click to select patient —"
+                    style={{ cursor: "pointer", background: "#f8fafc" }}
+                    onClick={() => setPatientPickerOpen(true)} />
+                  <button type="button" className="btn btn-outline" onClick={() => setPatientPickerOpen(true)}>Browse</button>
+                </div>
+                <PatientPickerModal
+                  isOpen={patientPickerOpen}
+                  onClose={() => setPatientPickerOpen(false)}
+                  onSelect={(p) => {
+                    set("patient_code", p.patient_code);
+                    set("patient_name", p.patient_name);
+                    setPatientPickerOpen(false);
+                    console.log("selected", p);
+                  }}
+                />
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -223,7 +231,7 @@ export default function VisitPage({ mode }) {
               </tr>
             )}
             headers={isView ? ["Doctor", "Specialty"] : ["Doctor", "Specialty", ""]}
-            addForm={!isView && <AddDoctorForm doctors={allDoctors} selected={appointedLines.map(l => l.doctor_code)}
+            addForm={!isView && <AddDoctorForm selected={appointedLines.map(l => l.doctor_code)}
               onAdd={d => setAppointedLines(ls => [...ls, d])} />}
             onSave={handleSaveAppointedDoctors} saving={saving} />
           </>
@@ -251,7 +259,7 @@ export default function VisitPage({ mode }) {
               </tr>
             )}
             headers={isView ? ["Medicine", "Type", "Qty", "Dosage Notes"] : ["Medicine", "Type", "Qty", "Dosage Notes", ""]}
-            addForm={!isView && <AddMedicineForm medicines={medicines} onAdd={m => setRxLines(ls => [...ls, m])} />}
+            addForm={!isView && <AddMedicineForm onAdd={m => setRxLines(ls => [...ls, m])} />}
             onSave={handleSavePrescription} saving={saving} />
           </>
         )}
@@ -278,7 +286,7 @@ export default function VisitPage({ mode }) {
               </tr>
             )}
             headers={isView ? ["Treatment", "Unit Cost", "Qty", "Notes"] : ["Treatment", "Unit Cost", "Qty", "Notes", ""]}
-            addForm={!isView && <AddTreatmentForm treatments={treatments} onAdd={t => setTxLines(ls => [...ls, t])} />}
+            addForm={!isView && <AddTreatmentForm onAdd={t => setTxLines(ls => [...ls, t])} />}
             onSave={handleSaveTreatment} saving={saving} />
           </>
         )}
@@ -303,7 +311,7 @@ export default function VisitPage({ mode }) {
               </tr>
             )}
             headers={isView ? ["Condition", "Description"] : ["Condition", "Description", ""]}
-            addForm={!isView && <AddConditionForm conditions={conditions} selected={dxLines.map(l => l.condition_code)}
+            addForm={!isView && <AddConditionForm selected={dxLines.map(l => l.condition_code)}
               onAdd={c => setDxLines(ls => [...ls, c])} />}
             onSave={handleSaveDiagnosis} saving={saving} />
           </>
@@ -359,37 +367,92 @@ function ChartEditor({ title, lines, renderLine, headers, addForm, onSave, savin
   );
 }
 
-function AddDoctorForm({ doctors, selected, onAdd }) {
-  const [code, setCode] = React.useState("");
-  const available = doctors.filter(d => !selected.includes(d.doctor_code));
+function AddDoctorForm({ selected, onAdd }) {
+  const [open, setOpen] = React.useState(false);
+  const [doctor, setDoctor] = React.useState(null);
+
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-      <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-        <label className="form-label">Add Doctor</label>
-        <select className="form-control" value={code} onChange={e => setCode(e.target.value)}>
-          <option value="">— Select —</option>
-          {available.map(d => <option key={d.doctor_code} value={d.doctor_code}>{d.doctor_name} — {d.specialty}</option>)}
-        </select>
+    <div style={{ marginTop: 8 }}>
+      <div className="form-group">
+        <label className="form-label">Doctor</label>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            className="form-control"
+            readOnly
+            value={
+              doctor
+                ? `${doctor.doctor_name} (${doctor.doctor_code})`
+                : ""
+            }
+            placeholder="— Click to select doctor —"
+            style={{
+              cursor: "pointer",
+              background: "#f8fafc",
+            }}
+            onClick={() => setOpen(true)}
+          />
+
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setOpen(true)}
+          >
+            Browse
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!doctor}
+            onClick={() => {
+              if (!doctor) return;
+
+              if (!selected.includes(doctor.doctor_code)) {
+                onAdd(doctor);
+              }
+
+              setDoctor(null);
+            }}
+          >
+            Add
+          </button>
+        </div>
       </div>
-      <button type="button" className="btn btn-outline" onClick={() => {
-        const d = doctors.find(x => x.doctor_code === code); if (d) { onAdd(d); setCode(""); }
-      }}>Add</button>
+
+      <DoctorPickerModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onSelect={(d) => {
+          setDoctor(d);
+          setOpen(false);
+        }}
+      />
     </div>
   );
 }
 
-function AddMedicineForm({ medicines, onAdd }) {
-  const [code, setCode] = React.useState("");
+function AddMedicineForm({ onAdd }) {
+  const [open, setOpen] = React.useState(false);
+  const [pending, setPending] = React.useState(null);
   const [qty, setQty] = React.useState("1");
   const [notes, setNotes] = React.useState("");
+  const fetchMedicines = React.useCallback((p) => listMedicines(p), []);
+  const handleSelect = (m) => { setPending(m); setOpen(false); };
+  const handleAdd = () => {
+    if (!pending) return;
+    onAdd({ ...pending, quantity: qty, dosage_notes: notes });
+    setPending(null); setQty("1"); setNotes("");
+  };
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginTop: 8 }}>
       <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
         <label className="form-label">Medicine</label>
-        <select className="form-control" value={code} onChange={e => setCode(e.target.value)}>
-          <option value="">— Select —</option>
-          {medicines.map(m => <option key={m.medicine_code} value={m.medicine_code}>{m.medicine_name} ({m.medicine_type})</option>)}
-        </select>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input className="form-control" readOnly value={pending ? `${pending.medicine_name} (${pending.medicine_code})` : ""}
+            placeholder="— Click to select —" style={{ cursor: "pointer", background: "#f8fafc" }} onClick={() => setOpen(true)} />
+          <button type="button" className="btn btn-outline" onClick={() => setOpen(true)}>Browse</button>
+        </div>
       </div>
       <div className="form-group" style={{ width: 80, marginBottom: 0 }}>
         <label className="form-label">Qty</label>
@@ -399,26 +462,37 @@ function AddMedicineForm({ medicines, onAdd }) {
         <label className="form-label">Dosage Notes</label>
         <input className="form-control" value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. Take twice daily" />
       </div>
-      <button type="button" className="btn btn-outline" onClick={() => {
-        const m = medicines.find(x => x.medicine_code === code);
-        if (m) { onAdd({ ...m, quantity: qty, dosage_notes: notes }); setCode(""); setQty("1"); setNotes(""); }
-      }}>Add</button>
+      <button type="button" className="btn btn-outline" onClick={handleAdd} disabled={!pending}>Add</button>
+      <ListPickerModal isOpen={open} onClose={() => setOpen(false)}
+        title="Select Medicine" searchPlaceholder="Search medicine name or code..."
+        fetchData={fetchMedicines}
+        columns={[{ key: "medicine_code", label: "Code" }, { key: "medicine_name", label: "Name" }, { key: "generic_name", label: "Generic" }, { key: "medicine_type", label: "Type" }]}
+        itemName="medicine" onSelect={handleSelect} />
     </div>
   );
 }
 
-function AddTreatmentForm({ treatments, onAdd }) {
-  const [code, setCode] = React.useState("");
+function AddTreatmentForm({ onAdd }) {
+  const [open, setOpen] = React.useState(false);
+  const [pending, setPending] = React.useState(null);
   const [qty, setQty] = React.useState("1");
   const [notes, setNotes] = React.useState("");
+  const fetchTreatments = React.useCallback((p) => listTreatments(p), []);
+  const handleSelect = (t) => { setPending(t); setOpen(false); };
+  const handleAdd = () => {
+    if (!pending) return;
+    onAdd({ ...pending, quantity: qty, notes });
+    setPending(null); setQty("1"); setNotes("");
+  };
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginTop: 8 }}>
       <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
         <label className="form-label">Treatment</label>
-        <select className="form-control" value={code} onChange={e => setCode(e.target.value)}>
-          <option value="">— Select —</option>
-          {treatments.map(t => <option key={t.treatment_code} value={t.treatment_code}>{t.treatment_name} — ฿{Number(t.unit_cost).toLocaleString()}</option>)}
-        </select>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input className="form-control" readOnly value={pending ? `${pending.treatment_name} (${pending.treatment_code})` : ""}
+            placeholder="— Click to select —" style={{ cursor: "pointer", background: "#f8fafc" }} onClick={() => setOpen(true)} />
+          <button type="button" className="btn btn-outline" onClick={() => setOpen(true)}>Browse</button>
+        </div>
       </div>
       <div className="form-group" style={{ width: 80, marginBottom: 0 }}>
         <label className="form-label">Qty</label>
@@ -428,29 +502,40 @@ function AddTreatmentForm({ treatments, onAdd }) {
         <label className="form-label">Notes</label>
         <input className="form-control" value={notes} onChange={e => setNotes(e.target.value)} />
       </div>
-      <button type="button" className="btn btn-outline" onClick={() => {
-        const t = treatments.find(x => x.treatment_code === code);
-        if (t) { onAdd({ ...t, quantity: qty, notes }); setCode(""); setQty("1"); setNotes(""); }
-      }}>Add</button>
+      <button type="button" className="btn btn-outline" onClick={handleAdd} disabled={!pending}>Add</button>
+      <ListPickerModal isOpen={open} onClose={() => setOpen(false)}
+        title="Select Treatment" searchPlaceholder="Search treatment name or code..."
+        fetchData={fetchTreatments}
+        columns={[{ key: "treatment_code", label: "Code" }, { key: "treatment_name", label: "Name" }, { key: "unit_cost", label: "Unit Cost", render: v => `฿${Number(v).toLocaleString()}` }]}
+        itemName="treatment" onSelect={handleSelect} />
     </div>
   );
 }
 
-function AddConditionForm({ conditions, selected, onAdd }) {
-  const [code, setCode] = React.useState("");
-  const available = conditions.filter(c => !selected.includes(c.condition_code));
+function AddConditionForm({ selected, onAdd }) {
+  const [open, setOpen] = React.useState(false);
+
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-      <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-        <label className="form-label">Add Diagnosis</label>
-        <select className="form-control" value={code} onChange={e => setCode(e.target.value)}>
-          <option value="">— Select —</option>
-          {available.map(c => <option key={c.condition_code} value={c.condition_code}>{c.condition_name}</option>)}
-        </select>
-      </div>
-      <button type="button" className="btn btn-outline" onClick={() => {
-        const c = conditions.find(x => x.condition_code === code); if (c) { onAdd(c); setCode(""); }
-      }}>Add</button>
+    <div style={{ marginTop: 8 }}>
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setOpen(true)}
+      >
+        + Add Diagnosis
+      </button>
+
+      <DiagnosisPickerModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onSelect={(c) => {
+          if (!selected.includes(c.condition_code)) {
+            onAdd(c);
+          }
+
+          setOpen(false);
+        }}
+      />
     </div>
   );
 }
